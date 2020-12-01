@@ -1,5 +1,5 @@
 # DAG schedulada para utilização dos dados do Titanic
-# Primeira DAG com Airflow
+
 
 from airflow import DAG
 # Importação de operadores
