@@ -14,7 +14,7 @@ default_args = {
     'owner': 'diego.rech', # Dono da DAG
     'depends_on_past': False, # Se DAG depende de algo acontecendo antes para iniciar o processo
     'start_date': datetime(2020, 11, 29, 7), # Data de inicio do processo da DAG
-    'email': 'diego_airflow@hotmail.com', # Email para ser notificado, caso configurado
+    'email': 'fake@hotmail.com', # Email para ser notificado, caso configurado
     'email_on_failure': False, # Para receber emails em casa de falha
     'email_on_retry': False, # Para receber emails em casa de uma nova tentativa de execução
     'retries': 1, # Quantas vezes uma nova tentativa deve ser feita

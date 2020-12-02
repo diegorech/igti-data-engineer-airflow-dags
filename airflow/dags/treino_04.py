@@ -8,6 +8,8 @@ from airflow.operators.python_operator import PythonOperator, BranchPythonOperat
 from datetime import datetime, timedelta
 import pandas as pd 
 import zipfile 
+import pyodbc
+import sqlalchemy
 
 data_path = '/root/download'
 
@@ -16,7 +18,7 @@ default_args = {
     'owner': 'diego.rech', # Dono da DAG
     'depends_on_past': False, # Se DAG depende de algo acontecendo antes para iniciar o processo
     'start_date': datetime(2020, 11, 30, 23), # Data de inicio do processo da DAG
-    'email': 'diego_airflow@hotmail.com', # Email para ser notificado, caso configurado
+    'email': 'fake@hotmail.com', # Email para ser notificado, caso configurado
     'email_on_failure': False, # Para receber emails em casa de falha
     'email_on_retry': False, # Para receber emails em casa de uma nova tentativa de execução
     'retries': 1, # Quantas vezes uma nova tentativa deve ser feita
@@ -95,18 +97,18 @@ def construct_centralized_pow():
     centralized_age = pd.read_csv(f'{data_path}/centralized_age.csv', sep=';', decimal=',')
     
     centralized_age['centralized_age'] = centralized_age['centralized_age'].astype(float)
-    centralized_age['centralized_pow'] = centralized_age['centralized_age'].pow(2)
+    centralized_age['centralized_pow'] = centralized_age['centralized_age'] ** 2
 
     centralized_age[['centralized_pow']].to_csv(f'{data_path}/centralized_pow.csv', index=False)
 
 
-task_centralized_age = PythonOperator(
+task_construct_centralized_age = PythonOperator(
     task_id = 'centralized_age',
     python_callable = construct_centralized_age,
     dag=dag 
 )
 
-task_centralized_pow = PythonOperator(
+task_construct_centralized_pow = PythonOperator(
     task_id = 'centralized_pow',
     python_callable = construct_centralized_pow,
     dag=dag 
@@ -156,6 +158,66 @@ task_construct_color = PythonOperator(
     dag = dag
 )
 
+def construct_escopai():
+    filter = pd.read_csv(f'{data_path}/enade_filtrado_2019.csv', usecols=['QE_I04'])
+    filter['escopai'] = filter.QE_I04.replace({
+        'A': 0,
+        'B': 1,
+        'C': 2,
+        'D': 3,
+        'E': 4,
+        'F': 5
+    })
+    filter[['escopai']].to_csv(f'{data_path}/escopai.csv', index=False)
+
+task_construct_escopai = PythonOperator(
+    task_id = 'construct_escopai',
+    python_callable = construct_escopai,
+    dag = dag
+)
+
+def construct_escomae():
+    filter = pd.read_csv(f'{data_path}/enade_filtrado_2019.csv', usecols=['QE_I05'])
+    
+    filter['escomae'] = filter.QE_I05.replace({
+        'A': 0,
+        'B': 1,
+        'C': 2,
+        'D': 3,
+        'E': 4,
+        'F': 5
+    })
+    filter[['escomae']].to_csv(f'{data_path}/escomae.csv', index = False)
+
+task_construct_escomae = PythonOperator(
+    task_id = 'construct_escomae',
+    python_callable = construct_escomae,
+    dag = dag
+)
+
+def construct_renda():
+    filter = pd.read_csv(f'{data_path}/enade_filtrado_2019.csv', usecols=['QE_I08'])
+    filter['renda'] = filter.QE_I08.replace({
+        'A': 0,
+        'B': 1,
+        'C': 2,
+        'D': 3,
+        'E': 4,
+        'F': 5,
+        'G': 6
+    })
+    filter[['renda']].to_csv(f'{data_path}/renda.csv', index = False)
+
+task_construct_renda = PythonOperator(
+    task_id = 'construct_renda',
+    python_callable = construct_renda,
+    dag = dag
+)
+
+
+
+
+
 ################################## Task de JOIN ##########################################################
 
 def join_data():
@@ -164,9 +226,13 @@ def join_data():
     centralized_pow = pd.read_csv(f'{data_path}/centralized_pow.csv', sep=';', decimal=',')
     martial_status = pd.read_csv(f'{data_path}/martial_status.csv', sep=';')
     color = pd.read_csv(f'{data_path}/color.csv', sep=';')
+    escopai = pd.read_csv(f'{data_path}/escopai.csv', sep=';')
+    escomae = pd.read_csv(f'{data_path}/escomae.csv', sep=';')
+    renda = pd.read_csv(f'{data_path}/renda.csv', sep=';')
 
     final = pd.concat([
-        filter, centralized_age, centralized_pow, martial_status, color
+        filter, centralized_age, centralized_pow,
+        martial_status, color, escomae, escopai, renda
     ],
         axis = 1
     )
@@ -179,14 +245,37 @@ task_join = PythonOperator(
     dag = dag
 )
 
+#### Task load ##########################
+
+def load_data():
+    enade = pd.read_csv(f'{data_path}/enade_tratado.csv')
+
+    engine = sqlalchemy.create_engine(
+        f'mssql+pyodbc://@localhost/enade?Integrated Security=True;driver=ODBC+Driver+17+for+SQL+Server'
+    )
+
+    enade.to_sql('tratado', con=engine, index=False, if_exists='append')
+
+task_load_data = PythonOperator(
+    task_id = 'load_data',
+    python_callable = load_data,
+    dag = dag
+)
 
 # Orquestração 
 
 start_processing >> task_get_data >> task_unzip_data >> task_apply_filter
-task_apply_filter >> [task_centralized_age, task_construct_martial_status, task_construct_color]
+task_apply_filter >> [
+    task_construct_centralized_age, task_construct_martial_status,
+    task_construct_color, task_construct_escomae,
+    task_construct_escopai, task_construct_renda
+]
 
-task_centralized_pow.set_upstream(task_centralized_age) # set_upstream() define que a task deve ser executada após a finalização da task indicada
+task_construct_centralized_pow.set_upstream(task_construct_centralized_age) # set_upstream() define que a task deve ser executada após a finalização da task indicada
 
 task_join.set_upstream([
-    task_construct_martial_status, task_construct_color, task_centralized_pow # Como centralized_pow só pode ser concluído após a centralized_age a segunda não precisa aparecer nessa lista
+    task_construct_escomae, task_construct_escopai, task_construct_renda,
+    task_construct_martial_status, task_construct_color, task_construct_centralized_pow # Como centralized_pow só pode ser concluído após a centralized_age a segunda não precisa aparecer nessa lista
 ])
+
+task_join >> task_load_data
