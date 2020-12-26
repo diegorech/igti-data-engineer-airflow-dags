@@ -1,8 +1,8 @@
-# igti-data-engineer-airflow-dags
-
+![IGTI logo](https://github.com/diegorech/twitter_crawler/blob/main/assets/igtilogo.jpg)
+# Airflow do básico ao paralelismo
 Módulo 1 do Bootcamp de Engenharia de Dados da IGTI
 
-A pasta DAGs possui os seguintes arquivos trabalhados em aula:
+As DAGS encontradas na pasta `/dags` seguem uma ordem de complexidade, `treino_01.py` possui mais comentários sobre componentes básicos do Airflow e da criação de uma rotina com o mesmo.
 
 - treino_01.py - Primeira DAG mostrando detalhes da criação da DAG e a utilização dos operadores Bash e Python
 - treino_02.py - DAG trabalha com 3 tasks para demonstrar o encadeamento
