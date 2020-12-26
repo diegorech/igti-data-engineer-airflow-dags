@@ -1,6 +1,8 @@
 ![IGTI logo](https://github.com/diegorech/igti-data-engineer-airflow-dags/blob/main/assets/igtilogo.jpg)
 
 # IGTI Data Engineer Bootcamp 
+
+![Airflow logo](https://github.com/diegorech/igti-data-engineer-airflow-dags/blob/main/assets/airflow-logo.jpg)
 ## Airflow do básico ao paralelismo
 Módulo 1 do Bootcamp de Engenharia de Dados da IGTI
 
