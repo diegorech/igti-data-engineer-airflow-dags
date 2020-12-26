@@ -45,7 +45,7 @@ start_processing = BashOperator(
 # Baixa os dados do ENADE 2019 do site oficial 
 task_get_data = BashOperator(
     task_id='get_data',
-    bash_command=f'curl http://download.inep.gov.br/microdados/Enade_Microdados/microdados_enade_2019.zip -o {data_path}/enade_2019.zip',
+    bash_command=f'wget -P /root/download http://download.inep.gov.br/microdados/Enade_Microdados/microdados_enade_2019.zip -o {data_path}/enade_2019.zip',
     dag=dag
 )
 
